@@ -1,0 +1,11 @@
+/* CampusDAO - Institutional Governance Platform Styles */
+
+/* Minimal transitions for professional feel */
+* {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Prevent transition on transforms to avoid breaking animations */
+*:not(button):not(a):not([role="button"]) {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
