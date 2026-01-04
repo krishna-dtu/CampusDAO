@@ -1,4 +1,4 @@
-import { Contract } from 'ethers'
+import { Contract, JsonRpcProvider } from 'ethers'
 import ABI from './ClubFundingDAO.abi.json'
 
 export const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS
@@ -22,8 +22,10 @@ export function getContract(providerOrSigner) {
 
 // Helpers for clarity: read vs write contract
 export function getReadContract(provider) {
-  if (!provider) throw new Error('Provider is required for read contract')
-  return getContract(provider)
+  // If no wallet/provider is available (visitor not connected), fall back to a local
+  // JSON-RPC provider so the UI can show on-chain data in read-only mode.
+  const usedProvider = provider || new JsonRpcProvider('http://127.0.0.1:8545')
+  return getContract(usedProvider)
 }
 
 export function getWriteContract(signer) {

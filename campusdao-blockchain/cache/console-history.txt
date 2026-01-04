@@ -1,0 +1,42 @@
+const [admin, v1, v2, v3, v4] = await ethers.getSigner
+await dao.registerVotersBatch([  v1.address,  v2.a
+const [admin, v1, v2, v3, v4] = await ethers.getSigner
+await dao.fundTreasury({ value: ethers.parseEther("50") })
+const dao = await ethers.getContractAt(  "ClubFundingDAO",  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+const dao = await ethers.getContractAt("CampusDAO", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+const dao = await ethers.getContractAt("ClubFundingDAO", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+.exit
+npx hardhat run contracts/scripts/deploy.js --network localhost
+const dao = await ethers.getContractAt("ClubFundingDAO", "0xYOUR_DEPLOYED_ADDRESS")
+.exit
+const dao = await ethers.getContractAt("ClubFundingDAO", "0xYOUR_DEPLOYED_ADDRESS")
+const dao = await ethers.getContractAt(  "ClubFundo.fundTreasury({ value: ethers.parseEther("50") })
+await
+)
+  "0xPASTE_DEPLOYED_ADDRESS_HERE"
+  "ClubFundingDAO",
+const dao = await ethers.getContractAt(
+)
+  "0xPASTE_DEPLOYED_ADDRESS_HERE"
+"ClubFundingDAO",
+const dao = await ethers.getContractAt(
+])
+  v3.address
+  v2.address,
+  v1.address,
+await dao.registerVotersBatch([
+await dao.fundTconst [admin, v1, v2, v3] = await ethers.getSigner
+)
+  "0x5FbDB2315678afecb367f032d93F642f64180aa3" // your deployed address
+  "ClubFundingDAO",
+const dao = await ethers.getContractAt(
+])
+  v3.address
+  v2.address,
+  v1.address,
+await dao.registerVotersBatch([
+await dao.fundT
+)
+  "0x5FbDB2315678afecb367f032d93F642f64180aa3" // your deployed address
+  "ClubFundingDAO",
+const dao = await ethers.getContractAt(

@@ -187,7 +187,7 @@ const SubmitProposal = () => {
             {/* Requested Amount */}
             <div>
               <Label htmlFor="requestedAmount" className="text-white font-medium">
-                Requested Amount ($) <span className="text-red-500">*</span>
+                Requested Amount (ETH) <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="requestedAmount"
@@ -196,7 +196,7 @@ const SubmitProposal = () => {
                 value={formData.requestedAmount}
                 onChange={handleChange}
                 className="mt-2 bg-slate-800 border-slate-700 text-white"
-                placeholder="e.g., 5000"
+                placeholder="e.g., 1.5"
               />
               {errors.requestedAmount && (
                 <p className="text-red-500 text-sm mt-1">{errors.requestedAmount}</p>

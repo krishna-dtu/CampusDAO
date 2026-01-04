@@ -2,8 +2,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserProvider } from 'ethers';
 
+
 // Create Web3 Context
 const Web3Context = createContext(null);
+
 
 export const useWeb3 = () => {
   const context = useContext(Web3Context);
@@ -12,6 +14,7 @@ export const useWeb3 = () => {
   }
   return context;
 };
+
 
 // Web3 Provider Component
 export const Web3Provider = ({ children }) => {
@@ -22,10 +25,12 @@ export const Web3Provider = ({ children }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState(null);
 
+
   // Check if MetaMask is installed
   const isMetaMaskInstalled = () => {
     return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
   };
+
 
   // Connect wallet
   const connectWallet = useCallback(async () => {
@@ -34,8 +39,10 @@ export const Web3Provider = ({ children }) => {
       return;
     }
 
+
     setIsConnecting(true);
     setError(null);
+
 
     try {
       // Request account access
@@ -43,10 +50,12 @@ export const Web3Provider = ({ children }) => {
         method: 'eth_requestAccounts',
       });
 
+
       // Create provider and signer
       const web3Provider = new BrowserProvider(window.ethereum);
       const web3Signer = await web3Provider.getSigner();
       const network = await web3Provider.getNetwork();
+
 
       setProvider(web3Provider);
       setSigner(web3Signer);
@@ -54,6 +63,7 @@ export const Web3Provider = ({ children }) => {
       // normalize chainId to number
       const normalizedChainId = typeof network.chainId === 'string' ? Number(network.chainId) : network.chainId
       setChainId(normalizedChainId);
+
 
       // If not connected to localhost Hardhat, surface an error
       if (normalizedChainId !== 31337) {
@@ -72,6 +82,7 @@ export const Web3Provider = ({ children }) => {
         }
       }
 
+
       // Store connection state
       localStorage.setItem('walletConnected', 'true');
     } catch (err) {
@@ -82,6 +93,7 @@ export const Web3Provider = ({ children }) => {
     }
   }, []);
 
+
   // Disconnect wallet
   const disconnectWallet = useCallback(() => {
     setAccount(null);
@@ -90,6 +102,7 @@ export const Web3Provider = ({ children }) => {
     setChainId(null);
     localStorage.removeItem('walletConnected');
   }, []);
+
 
   // Handle account changes
   const handleAccountsChanged = useCallback((accounts) => {
@@ -100,24 +113,28 @@ export const Web3Provider = ({ children }) => {
     }
   }, [account, disconnectWallet]);
 
+
   // Handle chain changes
   const handleChainChanged = useCallback((chainId) => {
-    // chainId may come as hex string (e.g. '0x7a69') — normalize to number
     try {
       const id = typeof chainId === 'string' && chainId.startsWith('0x') ? parseInt(chainId, 16) : Number(chainId)
       setChainId(id)
+      // Only reload if switching AWAY from localhost
+      if (id !== 31337) {
+        window.location.reload();
+      }
     } catch (e) {
       setChainId(chainId)
     }
-    // Reload page on chain change as recommended by MetaMask
-    window.location.reload();
   }, []);
+
 
   // Setup event listeners
   useEffect(() => {
     if (isMetaMaskInstalled()) {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
+
 
       // Cleanup
       return () => {
@@ -127,6 +144,7 @@ export const Web3Provider = ({ children }) => {
     }
   }, [handleAccountsChanged, handleChainChanged]);
 
+
   // Auto-connect on page load if previously connected
   useEffect(() => {
     const wasConnected = localStorage.getItem('walletConnected');
@@ -134,6 +152,7 @@ export const Web3Provider = ({ children }) => {
       connectWallet();
     }
   }, [connectWallet]);
+
 
   const value = {
     account,
@@ -148,6 +167,7 @@ export const Web3Provider = ({ children }) => {
     disconnectWallet,
     isMetaMaskInstalled: isMetaMaskInstalled(),
   };
+
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
 };
