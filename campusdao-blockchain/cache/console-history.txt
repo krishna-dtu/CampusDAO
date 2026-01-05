@@ -1,3 +1,5 @@
+await ethers.provider.send("eth_sendTransaction", [{to: treasury, value: ethers.parseEther("5")}])
+const treasury = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 const [admin, v1, v2, v3, v4] = await ethers.getSigner
 await dao.registerVotersBatch([  v1.address,  v2.a
 const [admin, v1, v2, v3, v4] = await ethers.getSigner

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useWeb3 } from '../contexts/Web3Context';
-import { proposals } from '../mock';
+import { proposals as mockProposals } from '../mock';
+import useContractInteraction from '../hooks/useContractInteraction'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -20,33 +21,67 @@ const Dashboard = () => {
     }
   }, [isConnected, navigate]);
 
-  // Mock user activity data (in production, fetch from blockchain/backend)
-  const myVotes = [
-    {
-      proposalId: 1,
-      proposalTitle: 'Annual Hackathon Infrastructure & Prizes',
-      club: 'Computer Science Society',
-      voteType: 'for',
-      timestamp: '2025-01-20',
-      amount: 8500,
-    },
-    {
-      proposalId: 2,
-      proposalTitle: 'Campus Sustainability Initiative - Solar Panel Installation',
-      club: 'Environmental Action Group',
-      voteType: 'for',
-      timestamp: '2025-01-18',
-      amount: 24000,
-    },
-    {
-      proposalId: 6,
-      proposalTitle: 'Peer Counseling Training & Support Resources',
-      club: 'Mental Health Awareness Society',
-      voteType: 'for',
-      timestamp: '2025-01-15',
-      amount: 3500,
-    },
-  ];
+  // derive default tab from query ?tab=proposals
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const defaultTabFromQuery = searchParams.get('tab') || 'votes'
+
+  const { fetchAllProposals, hasUserVoted, refreshCounter } = useContractInteraction()
+  const [myVotes, setMyVotes] = React.useState([])
+  const [loadingVotes, setLoadingVotes] = React.useState(true)
+  const [allProposals, setAllProposals] = React.useState([])
+
+  React.useEffect(() => {
+    let mounted = true
+    if (!isConnected || !account) {
+      // when not connected, clear votes
+      setMyVotes([])
+      setLoadingVotes(false)
+      return
+    }
+
+    setLoadingVotes(true)
+    ;(async () => {
+      try {
+        const items = await fetchAllProposals()
+        if (mounted) setAllProposals(items || [])
+        // Check which proposals this account has voted on
+        const checks = await Promise.all(
+          items.map(async (p) => {
+            try {
+              const voted = await hasUserVoted(p.id, account)
+              return voted ? p : null
+            } catch (e) {
+              return null
+            }
+          })
+        )
+        const votedProposals = checks.filter(Boolean).map((p) => ({
+          proposalId: p.id,
+          proposalTitle: p.title,
+          club: p.clubName,
+          voteType: 'for',
+          timestamp: new Date().toISOString(),
+          amount: p.requestedAmount,
+        }))
+        if (mounted) {
+          // fallback to mock if none found
+          if (votedProposals.length === 0) {
+            setMyVotes([])
+          } else {
+            setMyVotes(votedProposals)
+          }
+        }
+      } catch (e) {
+        console.error('Error loading votes', e)
+        if (mounted) setMyVotes([])
+      } finally {
+        if (mounted) setLoadingVotes(false)
+      }
+    })()
+
+    return () => { mounted = false }
+  }, [isConnected, account, fetchAllProposals, hasUserVoted, refreshCounter])
 
   const myProposals = [
     // Would be populated if user is a club that submitted proposals
@@ -70,6 +105,21 @@ const Dashboard = () => {
         return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
     }
   };
+
+  const stateLabel = (s) => {
+    switch (s) {
+      case 0:
+        return 'active'
+      case 1:
+        return 'approved'
+      case 2:
+        return 'rejected'
+      case 3:
+        return 'executed'
+      default:
+        return 'unknown'
+    }
+  }
 
   if (!isConnected) {
     return null;
@@ -146,7 +196,7 @@ const Dashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="votes" className="w-full">
+        <Tabs defaultValue={defaultTabFromQuery} className="w-full">
           <TabsList className="bg-slate-900 border border-slate-800">
             <TabsTrigger
               value="votes"
@@ -174,9 +224,14 @@ const Dashboard = () => {
           {/* My Votes */}
           <TabsContent value="votes" className="mt-6">
             <div className="space-y-4">
-              {myVotes.length > 0 ? (
+              {loadingVotes ? (
+                <div className="text-center py-12 bg-slate-900 border border-slate-800 rounded-lg">
+                  <p className="text-slate-400">Loading your votes…</p>
+                </div>
+              ) : myVotes.length > 0 ? (
                 myVotes.map((vote) => {
-                  const proposal = proposals.find((p) => p.id === vote.proposalId);
+                  const proposal = allProposals.find((p) => p.id === vote.proposalId) || mockProposals.find((p) => p.id === vote.proposalId);
+                  const statusStr = proposal ? (proposal.status ? proposal.status : (proposal.state !== undefined ? stateLabel(proposal.state) : 'unknown')) : 'unknown'
                   return (
                     <div
                       key={vote.proposalId}
@@ -192,8 +247,8 @@ const Dashboard = () => {
                               <p className="text-sm text-slate-400">{vote.club}</p>
                             </div>
                             {proposal && (
-                              <Badge className={getStatusColor(proposal.status)}>
-                                {proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
+                              <Badge className={getStatusColor(statusStr)}>
+                                {statusStr.charAt(0).toUpperCase() + statusStr.slice(1)}
                               </Badge>
                             )}
                           </div>

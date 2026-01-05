@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useContractInteraction from '../hooks/useContractInteraction'
 import { formatEther } from 'ethers'
-import { useWeb3 } from '../hooks/useWeb3'
+import { useWeb3 } from '../contexts/Web3Context'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Calendar, DollarSign, Users } from 'lucide-react';

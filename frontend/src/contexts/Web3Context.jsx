@@ -74,8 +74,16 @@ export const Web3Provider = ({ children }) => {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: '0x7A69' }], // 31337 in hex
           })
-          // If switch succeeds, try to refresh
-          window.location.reload()
+          // If switch succeeds, re-query network and update chainId without reloading
+          try {
+            const refreshedNetwork = await web3Provider.getNetwork()
+            const refreshedId = typeof refreshedNetwork.chainId === 'string' ? Number(refreshedNetwork.chainId) : refreshedNetwork.chainId
+            setChainId(refreshedId)
+            // clear error if now correct network
+            if (refreshedId === 31337) setError(null)
+          } catch (e) {
+            // ignore
+          }
         } catch (switchErr) {
           // Don't block — user can switch manually
           console.warn('Network switch request failed', switchErr)
@@ -106,10 +114,14 @@ export const Web3Provider = ({ children }) => {
 
   // Handle account changes
   const handleAccountsChanged = useCallback((accounts) => {
-    if (accounts.length === 0) {
+    if (!accounts || accounts.length === 0) {
       disconnectWallet();
-    } else if (accounts[0] !== account) {
-      setAccount(accounts[0]);
+      return;
+    }
+
+    const normalized = accounts[0]?.toLowerCase();
+    if (normalized !== account) {
+      setAccount(normalized);
     }
   }, [account, disconnectWallet]);
 
@@ -119,9 +131,11 @@ export const Web3Provider = ({ children }) => {
     try {
       const id = typeof chainId === 'string' && chainId.startsWith('0x') ? parseInt(chainId, 16) : Number(chainId)
       setChainId(id)
-      // Only reload if switching AWAY from localhost
+      // If switched away from localhost, surface an error
       if (id !== 31337) {
-        window.location.reload();
+        setError('Please switch MetaMask network to localhost (chainId 31337)')
+      } else {
+        setError(null)
       }
     } catch (e) {
       setChainId(chainId)
@@ -148,8 +162,11 @@ export const Web3Provider = ({ children }) => {
   // Auto-connect on page load if previously connected
   useEffect(() => {
     const wasConnected = localStorage.getItem('walletConnected');
-    if (wasConnected === 'true' && isMetaMaskInstalled()) {
-      connectWallet();
+    if (wasConnected === 'true' && isMetaMaskInstalled() && !isConnecting) {
+      // avoid triggering multiple connect attempts concurrently
+      connectWallet().catch((e) => {
+        console.warn('Auto-connect failed', e)
+      });
     }
   }, [connectWallet]);
 

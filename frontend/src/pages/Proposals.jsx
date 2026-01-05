@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useContractInteraction from '../hooks/useContractInteraction'
+import { useWeb3 } from '../contexts/Web3Context'
+import { useToast } from '../hooks/use-toast'
 import { formatEther } from 'ethers'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -14,12 +16,43 @@ const Proposals = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [proposals, setProposals] = useState([])
   const { fetchAllProposals, refreshCounter } = useContractInteraction()
+  const { account } = useWeb3()
+  const { toast } = useToast()
+
+  const hiddenKeyFor = (acct) => `hiddenProposals:${acct?.toLowerCase()}`
+  const isHidden = (id) => {
+    try {
+      if (!account) return false
+      const list = JSON.parse(localStorage.getItem(hiddenKeyFor(account)) || '[]')
+      return list.includes(id)
+    } catch (e) {
+      return false
+    }
+  }
+
+  const hideProposal = (id) => {
+    if (!account) return
+    try {
+      const key = hiddenKeyFor(account)
+      const list = JSON.parse(localStorage.getItem(key) || '[]')
+      if (!list.includes(id)) {
+        list.push(id)
+        localStorage.setItem(key, JSON.stringify(list))
+      }
+      setProposals((prev) => prev.filter((p) => p.id !== id))
+      toast({ title: 'Removed', description: 'Proposal removed from your view' })
+    } catch (e) {
+      console.warn('hideProposal', e)
+    }
+  }
 
   useEffect(() => {
     (async () => {
       try {
         const items = await fetchAllProposals()
-        setProposals(items)
+        // filter out any proposals hidden by this account
+        const filtered = (items || []).filter((p) => !isHidden(p.id))
+        setProposals(filtered)
       } catch (e) {
         console.error('fetchAllProposals', e)
       }
@@ -213,6 +246,15 @@ const Proposals = () => {
                         View Details
                       </Button>
                     </Link>
+                    {proposal.clubAddress && account && proposal.clubAddress.toLowerCase() === account.toLowerCase() && (
+                      <Button
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-red-500/10 mt-2"
+                        onClick={() => hideProposal(proposal.id)}
+                      >
+                        Remove (hide)
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

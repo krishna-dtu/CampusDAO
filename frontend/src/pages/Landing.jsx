@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { useWeb3 } from '../contexts/Web3Context';
 import { ArrowRight, Shield, Vote, Eye, TrendingUp } from 'lucide-react';
 
 const Landing = () => {
+  const { connectWallet, isConnected, isConnecting, isMetaMaskInstalled } = useWeb3();
   const problems = [
     {
       title: 'Centralized Decision-Making',
@@ -79,9 +81,25 @@ const Landing = () => {
               closed-door decisions with transparent, on-chain governance where every student has a voice.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button className="bg-teal-500 hover:bg-teal-600 text-slate-900 font-medium px-8 py-6 text-lg">
-                Connect Wallet
-              </Button>
+              {!isConnected && (
+                isMetaMaskInstalled ? (
+                  <Button
+                    onClick={() => connectWallet()}
+                    disabled={isConnecting}
+                    className="bg-teal-500 hover:bg-teal-600 text-slate-900 font-medium px-8 py-6 text-lg"
+                  >
+                    {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => window.open('https://metamask.io/download/', '_blank')}
+                    variant="outline"
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800 px-8 py-6 text-lg"
+                  >
+                    Install MetaMask
+                  </Button>
+                )
+              )}
               <Link to="/proposals">
                 <Button
                   variant="outline"
@@ -184,9 +202,25 @@ const Landing = () => {
             Connect your wallet to participate in transparent, decentralized funding decisions.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button className="bg-teal-500 hover:bg-teal-600 text-slate-900 font-medium px-8 py-6 text-lg">
-              Connect Wallet
-            </Button>
+            {!isConnected && (
+              isMetaMaskInstalled ? (
+                <Button
+                  onClick={() => connectWallet()}
+                  disabled={isConnecting}
+                  className="bg-teal-500 hover:bg-teal-600 text-slate-900 font-medium px-8 py-6 text-lg"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => window.open('https://metamask.io/download/', '_blank')}
+                  variant="outline"
+                  className="border-slate-700 text-slate-300 hover:bg-slate-800 px-8 py-6 text-lg"
+                >
+                  Install MetaMask
+                </Button>
+              )
+            )}
             <Link to="/about">
               <Button
                 variant="outline"

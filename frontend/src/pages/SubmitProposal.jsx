@@ -6,7 +6,8 @@ import { Label } from '../components/ui/label';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { parseEther } from 'ethers'
 import useContractInteraction from '../hooks/useContractInteraction'
-import { useWeb3 } from '../hooks/useWeb3'
+import { useWeb3 } from '../contexts/Web3Context'
+import { useNavigate } from 'react-router-dom'
 
 const SubmitProposal = () => {
   const [formData, setFormData] = useState({
@@ -113,7 +114,10 @@ const SubmitProposal = () => {
               >
                 Submit Another Proposal
               </Button>
-              <Button className="bg-teal-500 hover:bg-teal-600 text-slate-900">
+              <Button
+                onClick={() => navigate('/dashboard?tab=proposals')}
+                className="bg-teal-500 hover:bg-teal-600 text-slate-900"
+              >
                 View My Proposals
               </Button>
             </div>
