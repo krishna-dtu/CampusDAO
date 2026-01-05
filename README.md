@@ -31,146 +31,99 @@ CampusDAO is a lightweight on-chain governance and funding platform for college 
 
 ## Quick Start (local development)
 
-# CampusDAO — Technical README
-
-This file provides developer-focused documentation for CampusDAO: architecture, contract surface, local dev flows, debugging tips, and integration notes for running and extending the prototype.
-
-## TL;DR
-
-- Project: CampusDAO — on-chain governance and funding for campus clubs
-- Smart contract: `ClubFundingDAO` (Solidity, Hardhat)
-- Frontend: React + ethers.js v6 (uses `BrowserProvider`); ABI at `frontend/src/lib/ClubFundingDAO.abi.json`
-- Local dev: Hardhat node at `http://127.0.0.1:8545` (chainId `31337`)
-
-## Architecture
-
-- Smart contract layer: `campusdao-blockchain/contracts/ClubFundingDAO.sol` — single contract managing proposals, voting, and treasury operations. Main primitives:
-	- `struct Proposal { id, clubName, title, description, requestedAmount, clubAddress, createdAtBlock, votingStartBlock, votingEndBlock, yesVotes, noVotes, totalVoters, state, fundsReleased }`
-	- `createProposal`, `vote`, `finalizeProposal`, `withdrawFunds`, `fundTreasury`, `getProposal`, `proposalCount`, `getVoteCounts`, `hasUserVoted` (see ABI for full signatures and event definitions)
-
-- Frontend: React app under `frontend/` that uses a `Web3Context` for provider/signers and a `useContractInteraction` hook to encapsulate contract calls and event handling. UI pages of interest: `Landing`, `Proposals`, `ProposalDetail`, `SubmitProposal`, `Dashboard`.
-
-## Contract Surface (quick reference)
-
-- View functions (read-only): `getProposal(uint256)`, `proposalCount()`, `getVoteCounts(uint256)`, `hasUserVoted(uint256,address)`, `getTreasuryInfo()`
-- Transactions (write): `createProposal(string,string,string,uint256,address)`, `vote(uint256,bool)`, `finalizeProposal(uint256)`, `withdrawFunds(uint256)`, `fundTreasury()`
-- Events: `ProposalCreated`, `VoteCast`, `ProposalApproved`, `ProposalRejected`, `FundsReleased`, `TreasuryFunded`
-
-Consult `frontend/src/lib/ClubFundingDAO.abi.json` for exact ABI shapes and `campusdao-blockchain/artifacts/contracts/ClubFundingDAO.sol/ClubFundingDAO.json` for artifact metadata.
-
-## Local Development (step-by-step, reproducible)
-
-1) Install dependencies
-
-```bash
-# from repo root
-cd campusdao-blockchain
-npm install
-cd ../frontend
-npm install
-```
-
-2) Run a Hardhat local node (terminal A)
+1) Start a Hardhat node (local chain):
 
 ```bash
 cd campusdao-blockchain
 npx hardhat node
 ```
 
-This prints funded accounts with private keys. Keep it running.
-
-3) Deploy contracts to the running local node (terminal B)
+2) Deploy the contract to the running local node (in a new terminal):
 
 ```bash
 cd campusdao-blockchain
 npx hardhat run --network localhost contracts/scripts/deploy.js
 ```
 
-The deploy script prints the deployed address and attempts to write `REACT_APP_CONTRACT_ADDRESS` into the frontend `.env`. If it cannot locate the frontend directory, the script logs a warning and prints the address for manual copying.
+Copy the deployed contract address printed by the deploy script.
 
-4) Wire frontend and start (terminal C)
+Note: When deploying to a local network the deploy script will attempt to detect your React frontend and write `REACT_APP_CONTRACT_ADDRESS` into its `.env` file automatically. The script logs the path it wrote to. If it cannot find a frontend directory it will print a warning and you can run the `seed` script or manually set the `REACT_APP_CONTRACT_ADDRESS` in your frontend `.env`.
+
+3) Configure the frontend environment:
+
+Create a `.env` file inside the `frontend/` directory with the following contents:
+
+```
+REACT_APP_CONTRACT_ADDRESS=0xYourDeployedContractAddressHere
+```
+
+Also ensure MetaMask is connected to `http://127.0.0.1:8545` (the Hardhat node) and using an account that matches one of the Hardhat accounts.
+
+4) Install and start the frontend:
 
 ```bash
 cd frontend
-# create .env with the deployed address if the deploy script didn't write it
-echo "REACT_APP_CONTRACT_ADDRESS=0x<DEPLOYED_ADDRESS>" > .env
+npm install
 npm start
 ```
 
-Open `http://localhost:3000` and connect MetaMask to RPC `http://127.0.0.1:8545` (chainId 31337). Use one of the Hardhat accounts.
+Open `http://localhost:3000` in your browser, connect MetaMask via the Wallet modal, then create proposals and vote.
 
-## Running Tests & CI
+5) (Recommended) Seed local demo data (fund treasury, register voters, create a demo proposal):
 
-- Run the Solidity unit tests
+```bash
+# from the project root (or adjust path)
+cd campusdao-blockchain
+npx hardhat run --network localhost contracts/scripts/seed.js
+```
+
+## Environment variables
+
+- `REACT_APP_CONTRACT_ADDRESS` — deployed `ClubFundingDAO` address used by the frontend.
+
+If this is not set the frontend will fail to instantiate the contract.
+
+## Contracts & ABI
+
+The frontend imports a local ABI file at `frontend/src/lib/ClubFundingDAO.abi.json`. For production or canonical artifacts you can replace that file with the ABI from Hardhat's artifacts (the JSON `abi` field from `artifacts/contracts/ClubFundingDAO.sol/ClubFundingDAO.json`).
+
+## Common Developer Tasks
+
+- Run unit tests (Hardhat):
 
 ```bash
 cd campusdao-blockchain
+npm install
 npx hardhat test
 ```
 
-- Build/compile contracts
+- Lint and format (frontend):
 
 ```bash
-npx hardhat compile
-```
-
-## Frontend Developer Notes
-
-- Web3 context: `frontend/src/contexts/Web3Context.jsx` manages provider vs signer, account normalization, chain handling, and auto-connect. Key exported hook: `useWeb3()`.
-- Contract interaction: `frontend/src/hooks/useContractInteraction.js` exposes `readContract` (provider-backed), `writeContract` (signer-backed) and high-level helpers: `createProposal()`, `vote()`, `finalizeProposal()`, `withdrawFunds()`, `fetchProposal()`, `fetchAllProposals()`, `hasUserVoted()`.
-- ABI & helpers: Keep `frontend/src/lib/ClubFundingDAO.abi.json` in sync with compiled artifacts; `frontend/src/lib/contract.js` wraps `getContract(providerOrSigner)`.
-
-Ethers v6 specifics used by this project:
-- `BrowserProvider(window.ethereum)` returns an Ethers v6 provider. `getSigner()` is async and returns a signer instance for writes.
-- Formatting helpers like `formatEther` are imported from `ethers` namespace where applicable.
-
-## Debugging Guide
-
-- "Contract not available": confirm `REACT_APP_CONTRACT_ADDRESS` is set and Hardhat node is running.
-- MetaMask chain mismatch: the code requests `wallet_switchEthereumChain`; for local chains you may need to add the network manually with chainId `0x7A69` (hex 31337).
-- Event subscriptions: `useContractInteraction` subscribes to on-chain events; if you see duplicate events, ensure you're not instantiating multiple readContract instances or mounting hooks multiple times.
-- Common runtime crash: calling `.charAt()` on undefined when `status` is missing — map numeric `state` → string before using string helpers (the UI includes a `stateLabel` mapping in `ProposalDetail` / `Dashboard`).
-
-## Limitations & Security
-
-- No on-chain 'deleteProposal' exists in the current ABI; UI-level hide/remove is implemented client-side only (localStorage). Deleting proposals on-chain would require a contract change + governance for removal.
-- This repository is a demo; a production release should include:
-	- formal audits
-	- off-chain indexing (The Graph) for performant querying
-	- rate-limits and anti-spam governance (proposal thresholds)
-	- proper error handling and user feedback around failed transactions
-
-## Extensibility Ideas
-
-- Token-weighted voting (ERC-20), delegation, or quadratic voting
-- Indexing with The Graph for scalable UI queries
-- Multi-sig treasury or timelocks for proposals executed on-chain
-
-## Useful Commands Summary
-
-```bash
-# Start local node
-npx hardhat node
-
-# Deploy locally
-npx hardhat run --network localhost contracts/scripts/deploy.js
-
-# Run tests
-npx hardhat test
-
-# Start frontend
 cd frontend
-npm start
+npm run lint
+npm run format
 ```
 
-## References (file pointers)
+## Notes / Troubleshooting
 
-- `frontend/src/contexts/Web3Context.jsx` — provider & account handling: [frontend/src/contexts/Web3Context.jsx](frontend/src/contexts/Web3Context.jsx#L1)
-- `frontend/src/hooks/useContractInteraction.js` — contract helpers: [frontend/src/hooks/useContractInteraction.js](frontend/src/hooks/useContractInteraction.js#L1)
-- ABI used by frontend: [frontend/src/lib/ClubFundingDAO.abi.json](frontend/src/lib/ClubFundingDAO.abi.json#L1)
-- Solidity source: [campusdao-blockchain/contracts/ClubFundingDAO.sol](campusdao-blockchain/contracts/ClubFundingDAO.sol#L1)
+- Chain/network: The frontend expects the local chain (Hardhat) on RPC `http://127.0.0.1:8545` and chainId `31337`. If MetaMask is on a different network the Web3 context attempts a network switch, but switching to custom local networks may require manual configuration.
+- Contract address: Make sure `REACT_APP_CONTRACT_ADDRESS` points to the deployed contract. If you redeploy, update the `.env` and restart the frontend.
+- Voter registration: Depending on contract access controls, some actions (voting, proposing) may require registered club accounts — use the Hardhat deploy script or console to set up initial state.
 
----
+## Deployment
 
-If you want, I can also add a `Makefile` or npm script that starts the node, deploys, and launches the frontend in parallel for an easier demo workflow. Would you like that?
+For production deployments use a public network (e.g., Goerli/Mainnet) and real RPC provider (Alchemy/Infura). Steps:
+
+1. Update Hardhat config with a network configuration and private key.
+2. Deploy with `npx hardhat run --network <network> scripts/deploy.js`.
+3. Update `REACT_APP_CONTRACT_ADDRESS` in the production frontend environment.
+
+## Contributing
+
+Contributions welcome. Please open issues or PRs for bug reports, feature requests, and improvements.
+
+## License
+
+This project is provided as-is for demonstration and educational use.
 
